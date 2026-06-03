@@ -1,66 +1,34 @@
+# app.py
 import streamlit as st
 import fitz
 
 from pdf_counter import count_characters
 
 
-# ============================================================
-# PAGE CONFIGURATION
-# ============================================================
-# Sets the browser tab title and makes the app use the full
-# available screen width.
-
 st.set_page_config(
     page_title="PDF Character Counter",
     layout="wide",
 )
-
-
-# ============================================================
-# APP TITLE AND DESCRIPTION
-# ============================================================
-# Displays the main heading and short explanation of the app.
 
 st.title("PDF Character Counter")
 st.write(
     "Counts characters including spaces and can automatically remove headers, footers, and page numbers."
 )
 
-
-# ============================================================
-# PDF UPLOAD
-# ============================================================
-# Allows the user to upload a PDF file.
-
 uploaded_file = st.file_uploader(
     "Upload PDF",
     type=["pdf"],
 )
 
-
-# ============================================================
-# MAIN APP LOGIC
-# ============================================================
-# Runs only after the user has uploaded a PDF.
-
 if uploaded_file:
-
-    # Read the uploaded PDF as bytes.
     pdf_bytes = uploaded_file.read()
 
-    # Open the PDF with PyMuPDF so we can count the pages.
     doc = fitz.open(
         stream=pdf_bytes,
         filetype="pdf",
     )
 
     page_count = len(doc)
-
-    # --------------------------------------------------------
-    # SETTINGS SECTION
-    # --------------------------------------------------------
-    # Lets the user choose pages to exclude and whether headers,
-    # footers, and page numbers should be removed.
 
     st.subheader("Settings")
 
@@ -90,11 +58,12 @@ if uploaded_file:
             value=True,
         )
 
-    # --------------------------------------------------------
-    # CHARACTER COUNTING
-    # --------------------------------------------------------
-    # Sends the uploaded PDF and selected settings to the
-    # counting function in pdf_counter.py.
+    characters_per_normal_page = st.number_input(
+        "Tegn pr. normalside",
+        min_value=1,
+        value=2400,
+        step=100,
+    )
 
     result = count_characters(
         pdf_bytes=pdf_bytes,
@@ -104,25 +73,25 @@ if uploaded_file:
         remove_page_numbers=remove_page_numbers,
     )
 
-    st.divider()
-
-    # --------------------------------------------------------
-    # TOTAL CHARACTER COUNT
-    # --------------------------------------------------------
-    # Displays the total number of characters counted.
-
-    st.metric(
-        "Characters including spaces",
-        f"{result['total_characters']:,}".replace(",", "."),
-    )
+    normal_pages = result["total_characters"] / characters_per_normal_page
 
     st.divider()
 
-    # --------------------------------------------------------
-    # REMOVED ELEMENTS SUMMARY
-    # --------------------------------------------------------
-    # Splits removed elements into headers, footers, and
-    # page numbers so they can be shown separately.
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.metric(
+            "Characters including spaces",
+            f"{result['total_characters']:,}".replace(",", "."),
+        )
+
+    with col2:
+        st.metric(
+            "Normalsider",
+            f"{normal_pages:.2f}".replace(".", ","),
+        )
+
+    st.divider()
 
     st.subheader("Elements removed from the count")
 
@@ -166,13 +135,7 @@ if uploaded_file:
             len(removed_page_numbers),
         )
 
-    # --------------------------------------------------------
-    # REMOVED HEADERS TABLE
-    # --------------------------------------------------------
-    # Shows the specific header elements that were removed.
-
     with st.expander("Show removed headers"):
-
         if removed_headers:
             st.dataframe(
                 removed_headers,
@@ -181,13 +144,7 @@ if uploaded_file:
         else:
             st.info("No headers were removed.")
 
-    # --------------------------------------------------------
-    # REMOVED FOOTERS TABLE
-    # --------------------------------------------------------
-    # Shows the specific footer elements that were removed.
-
     with st.expander("Show removed footers"):
-
         if removed_footers:
             st.dataframe(
                 removed_footers,
@@ -196,13 +153,7 @@ if uploaded_file:
         else:
             st.info("No footers were removed.")
 
-    # --------------------------------------------------------
-    # REMOVED PAGE NUMBERS TABLE
-    # --------------------------------------------------------
-    # Shows the specific page numbers that were removed.
-
     with st.expander("Show removed page numbers"):
-
         if removed_page_numbers:
             st.dataframe(
                 removed_page_numbers,
@@ -213,11 +164,6 @@ if uploaded_file:
 
     st.divider()
 
-    # --------------------------------------------------------
-    # PAGE-BY-PAGE RESULTS
-    # --------------------------------------------------------
-    # Displays the character count for each page.
-
     st.subheader("Result per page")
 
     st.dataframe(
@@ -227,24 +173,12 @@ if uploaded_file:
 
     st.divider()
 
-    # --------------------------------------------------------
-    # INCLUDED TEXT PREVIEW
-    # --------------------------------------------------------
-    # Lets the user inspect the exact text that was included
-    # in the final character count.
-
     with st.expander("View text included in the count"):
-
         st.text_area(
             "Text",
             result["included_text"],
             height=400,
         )
-
-    # --------------------------------------------------------
-    # TEXT DOWNLOAD
-    # --------------------------------------------------------
-    # Allows the user to download the counted text as a TXT file.
 
     st.download_button(
         label="Download text as TXT",

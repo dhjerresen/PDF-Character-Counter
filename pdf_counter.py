@@ -1,3 +1,4 @@
+# pdf_counter.py
 import re
 from collections import Counter
 import fitz
