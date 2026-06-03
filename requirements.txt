@@ -1,2 +1,2 @@
-streamlit
-pymupdf
+streamlit==1.49.1
+pymupdf==1.27.2.3
